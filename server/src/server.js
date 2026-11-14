@@ -49,8 +49,8 @@ const start = async () => {
     // Initialize socket handlers
     initializeSockets(io);
 
-    // Start listening
-    httpServer.listen(PORT, () => {
+    // Start listening on all network interfaces for Docker/Render
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 Socket.IO enabled`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
