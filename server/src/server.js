@@ -8,7 +8,7 @@ import { setIo as setNotificationIo } from './services/notification.service.js';
 import { setIo as setAppointmentIo } from './services/appointment.service.js';
 
 const PORT = process.env.PORT || 5000;
-const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:5173';
+const rawOrigins = process.env.FRONTEND_URL || '*';
 const allowedOrigins = rawOrigins
   .split(',')
   .map((url) => url.trim().replace(/\/$/, ''))

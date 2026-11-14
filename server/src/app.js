@@ -30,7 +30,7 @@ export const createApp = (io) => {
   app.use(helmet());
 
   // Allowed origins helper
-  const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const rawOrigins = process.env.FRONTEND_URL || '*';
   const allowedOrigins = rawOrigins
     .split(',')
     .map((url) => url.trim().replace(/\/$/, ''))
