@@ -10,7 +10,7 @@ ENV PORT=5000
 
 # Install dependencies first (layer caching)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy application source code
 COPY src/ ./src/
