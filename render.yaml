@@ -45,6 +45,6 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false # Enter https://<backend-name>.onrender.com/api
+        value: https://hospital-backend-bqkp.onrender.com/api
       - key: VITE_WS_URL
-        sync: false # Enter https://<backend-name>.onrender.com
+        value: https://hospital-backend-bqkp.onrender.com
