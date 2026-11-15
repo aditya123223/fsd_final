@@ -1,8 +1,8 @@
 import React from 'react';
 import { Calendar, Clock, FileText } from 'lucide-react';
-import { formatDate, formatTime } from '../../utils/dateTime.js';
 import AppointmentStatusBadge from './AppointmentStatusBadge.jsx';
 import Avatar from '../common/Avatar.jsx';
+import { useAppointmentDetails } from '../../hooks/useAppointmentDetails.js';
 
 export default function AppointmentCard({
   appointment,
@@ -11,31 +11,20 @@ export default function AppointmentCard({
   onCancel,
   onReschedule,
 }) {
-  const doctor =
-    appointment.doctor ||
-    (typeof appointment.doctorId === 'object' && appointment.doctorId !== null
-      ? appointment.doctorId
-      : null);
-
-  const patient =
-    appointment.patient ||
-    (typeof appointment.patientId === 'object' && appointment.patientId !== null
-      ? appointment.patientId
-      : null);
-
-  const person = role === 'doctor' ? (patient || doctor) : (doctor || patient);
-  const personName =
-    person?.name ||
-    (role === 'doctor'
-      ? (typeof appointment.patientId === 'string' ? 'Patient' : 'Unknown Patient')
-      : (typeof appointment.doctorId === 'string' ? 'Doctor' : 'Unknown Doctor'));
-
-  const specialization = doctor?.specialization;
-  const scheduledDate = appointment.appointmentDate || appointment.scheduledDate;
-  const startTime = appointment.startTime;
-  const reason = appointment.reason;
-  const status = appointment.status;
-  const isScheduled = status === 'scheduled';
+  const {
+    person,
+    personName,
+    doctor,
+    specialization,
+    formattedDate,
+    formattedTime,
+    reason,
+    status,
+    isScheduled,
+    canCancel,
+    canReschedule,
+    timeBadge,
+  } = useAppointmentDetails(appointment, role);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition-shadow flex flex-col justify-between">
@@ -48,9 +37,16 @@ export default function AppointmentCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-gray-900 truncate">
-                {personName}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900 truncate">
+                  {personName}
+                </h3>
+                {timeBadge && (
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${timeBadge.className}`}>
+                    {timeBadge.label}
+                  </span>
+                )}
+              </div>
               {role === 'patient' && specialization && (
                 <p className="text-sm text-teal-600 font-medium">{specialization}</p>
               )}
@@ -65,16 +61,16 @@ export default function AppointmentCard({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-3 text-sm text-gray-500">
-            {scheduledDate && (
+            {formattedDate && (
               <span className="flex items-center gap-1 font-medium text-gray-700">
                 <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                {formatDate(scheduledDate)}
+                {formattedDate}
               </span>
             )}
-            {startTime && (
+            {formattedTime && (
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-gray-400" />
-                {formatTime(startTime)}
+                {formattedTime}
               </span>
             )}
             {reason && (
@@ -94,7 +90,7 @@ export default function AppointmentCard({
       ) : (
         isScheduled && (onReschedule || onCancel) && (
           <div className="mt-4 flex gap-2 flex-wrap justify-end pt-3 border-t border-gray-100">
-            {onReschedule && (
+            {onReschedule && canReschedule && (
               <button
                 type="button"
                 onClick={() => onReschedule(appointment)}
@@ -103,7 +99,7 @@ export default function AppointmentCard({
                 Reschedule
               </button>
             )}
-            {onCancel && (
+            {onCancel && canCancel && (
               <button
                 type="button"
                 onClick={() => onCancel(appointment)}
