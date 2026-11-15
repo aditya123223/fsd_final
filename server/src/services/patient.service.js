@@ -45,11 +45,46 @@ export const updatePatientProfile = async (patientId, updates) => {
   return { user, profile };
 };
 
+const enrichAppointmentsWithDoctorInfo = async (appointments) => {
+  if (!appointments || appointments.length === 0) return [];
+  const doctorUserIds = [
+    ...new Set(
+      appointments
+        .map((a) => (a.doctorId?._id ? a.doctorId._id.toString() : a.doctorId?.toString()))
+        .filter(Boolean)
+    ),
+  ];
+  const doctorProfiles = await DoctorProfile.find({ userId: { $in: doctorUserIds } }).lean();
+  const profileMap = new Map(doctorProfiles.map((p) => [p.userId.toString(), p]));
+
+  return appointments.map((appt) => {
+    const docId = appt.doctorId?._id ? appt.doctorId._id.toString() : appt.doctorId?.toString();
+    const docProfile = docId ? profileMap.get(docId) : null;
+    const docObj =
+      appt.doctorId && typeof appt.doctorId === 'object'
+        ? {
+            ...appt.doctorId,
+            specialization: docProfile?.specialization || '',
+            profileImage: docProfile?.profileImage || '',
+            consultationFee: docProfile?.consultationFee || 0,
+          }
+        : appt.doctorId;
+
+    return {
+      ...appt,
+      doctorId: docObj,
+      doctor: docObj,
+      patient: appt.patientId && typeof appt.patientId === 'object' ? appt.patientId : null,
+      scheduledDate: appt.appointmentDate,
+    };
+  });
+};
+
 /**
  * Get patient dashboard
  */
 export const getPatientDashboard = async (patientId) => {
-  const [upcomingAppointments, completedCount, cancelledCount, doctorProfiles] = await Promise.all([
+  const [upcomingRaw, completedCount, cancelledCount, doctorProfiles] = await Promise.all([
     Appointment.find({
       patientId,
       status: 'scheduled',
@@ -64,6 +99,7 @@ export const getPatientDashboard = async (patientId) => {
     DoctorProfile.find({}).populate('userId', 'name email phone').limit(4).lean(),
   ]);
 
+  const upcomingAppointments = await enrichAppointmentsWithDoctorInfo(upcomingRaw);
   const nextAppointment = upcomingAppointments[0] || null;
   const availableDoctors = doctorProfiles.map((dp) => ({
     _id: dp.userId?._id || dp._id,
@@ -113,15 +149,18 @@ export const getPatientAppointments = async (patientId, { tab = 'all', page = 1,
     }
   }
 
-  const [appointments, total] = await Promise.all([
+  const [rawAppointments, total] = await Promise.all([
     Appointment.find(query)
       .populate('doctorId', 'name email phone')
+      .populate('patientId', 'name email phone')
       .sort({ appointmentDate: -1, startTime: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
     Appointment.countDocuments(query),
   ]);
+
+  const appointments = await enrichAppointmentsWithDoctorInfo(rawAppointments);
 
   return { appointments, total };
 };
