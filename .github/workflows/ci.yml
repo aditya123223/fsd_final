@@ -1,0 +1,73 @@
+name: CI Pipeline - CareSync
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-test:
+    name: Backend Lint & Automated Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7-jammy
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Server Dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Run Backend Test Suite
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          MONGODB_URI: mongodb://localhost:27017/hospital_test_db
+          JWT_ACCESS_SECRET: ci_test_access_secret_super_key_12345
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_super_key_12345
+        run: |
+          cd server
+          npm test
+
+  frontend-build:
+    name: Frontend Build & Type Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Client Dependencies
+        run: |
+          cd client
+          npm ci
+
+      - name: Build React Production Bundle
+        env:
+          VITE_API_URL: https://hospital-backend-bqkp.onrender.com/api
+          VITE_WS_URL: https://hospital-backend-bqkp.onrender.com
+        run: |
+          cd client
+          npm run build
